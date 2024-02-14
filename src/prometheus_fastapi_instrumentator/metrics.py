@@ -56,8 +56,8 @@ def _build_label_attribute_names(
     should_include_handler: bool,
     should_include_method: bool,
     should_include_status: bool,
-    should_include_headers: bool,
-    included_headers: List[str],
+    should_include_headers: bool = False,
+    included_headers: List[str] = [],
 ) -> Tuple[List[str], List[str]]:
     """Builds up tuple with to be used label and attribute names.
 
@@ -65,6 +65,8 @@ def _build_label_attribute_names(
         should_include_handler (bool): Should the `handler` label be part of the metric?
         should_include_method (bool): Should the `method` label be part of the metric?
         should_include_status (bool): Should the `status` label be part of the metric?
+        should_include_headers (bool): Should the specified `included_headers` labels be part of the metric?
+        included_headers (List[str]): List of strings that will be used to add labels to the metrics.
 
     Returns:
         Tuple with two list elements.
@@ -89,7 +91,7 @@ def _build_label_attribute_names(
         label_names.append("status")
         info_attribute_names.append("modified_status")
 
-    if should_include_headers and included_headers is not None:
+    if should_include_headers:
         for header in included_headers:
             label_names.append(header)
 
@@ -123,7 +125,7 @@ def latency(
     buckets: Sequence[Union[float, str]] = Histogram.DEFAULT_BUCKETS,
     registry: CollectorRegistry = REGISTRY,
     should_include_headers: bool = False,
-    included_headers: List[str] = None,
+    included_headers: List[str] = [],
 ) -> Optional[Callable[[Info], None]]:
     """Default metric for the Prometheus FastAPI Instrumentator.
 
@@ -155,8 +157,8 @@ def latency(
         should_include_headers: Should the `headers` labels be part of the
             metric? Defaults to `False`.
 
-        included_headers: List of headers to include in the metric. Defaults to
-            None.
+        included_headers (List[str]): List of strings that will be used to
+            add labels to the metrics. Defaults to `[]`.
 
     Returns:
         Function that takes a single parameter `Info`.
@@ -204,7 +206,7 @@ def latency(
                     getattr(info, attribute_name)
                     for attribute_name in info_attribute_names
                 ]
-                if should_include_headers and included_headers is not None:
+                if should_include_headers:
                     for header in included_headers:
                         label_values.append(info.request.headers.get(header, ""))
 
@@ -230,7 +232,7 @@ def request_size(
     should_include_status: bool = True,
     registry: CollectorRegistry = REGISTRY,
     should_include_headers: bool = False,
-    included_headers: List[str] = None,
+    included_headers: List[str] = [],
 ) -> Optional[Callable[[Info], None]]:
     """Record the content length of incoming requests.
 
@@ -253,8 +255,8 @@ def request_size(
             Defaults to `True`.
         should_include_headers: Should the `headers` labels be part of the
             metric? Defaults to `False`.
-        included_headers: List of headers to include in the metric. Defaults to
-            None.
+        included_headers: List of strings that will be used to
+            add labels to the metrics. Defaults to `[]`.
     Returns:
         Function that takes a single parameter `Info`.
     """
@@ -297,7 +299,7 @@ def request_size(
                     getattr(info, attribute_name)
                     for attribute_name in info_attribute_names
                 ]
-                if should_include_headers and included_headers is not None:
+                if should_include_headers:
                     for header in included_headers:
                         label_values.append(info.request.headers.get(header, ""))
 
@@ -323,7 +325,7 @@ def response_size(
     should_include_status: bool = True,
     registry: CollectorRegistry = REGISTRY,
     should_include_headers: bool = False,
-    included_headers: List[str] = None,
+    included_headers: List[str] = [],
 ) -> Optional[Callable[[Info], None]]:
     """Record the content length of outgoing responses.
 
@@ -354,8 +356,8 @@ def response_size(
        should_include_headers: Should the `headers` labels be part of the
             metric? Defaults to `False`.
 
-        included_headers: List of headers to include in the metric. Defaults to
-            None.
+        included_headers: List of strings that will be used to
+            add labels to the metrics. Defaults to `[]`.
 
     Returns:
         Function that takes a single parameter `Info`.
@@ -403,7 +405,7 @@ def response_size(
                     getattr(info, attribute_name)
                     for attribute_name in info_attribute_names
                 ]
-                if should_include_headers and included_headers is not None:
+                if should_include_headers:
                     for header in included_headers:
                         label_values.append(info.request.headers.get(header, ""))
 
@@ -429,7 +431,7 @@ def combined_size(
     should_include_status: bool = True,
     registry: CollectorRegistry = REGISTRY,
     should_include_headers: bool = False,
-    included_headers: List[str] = None,
+    included_headers: List[str] = [],
 
 ) -> Optional[Callable[[Info], None]]:
     """Record the combined content length of requests and responses.
@@ -461,8 +463,8 @@ def combined_size(
         should_include_headers: Should the `headers` labels be part of the
             metric? Defaults to `False`.
 
-        included_headers: List of headers to include in the metric. Defaults to
-            None.
+        included_headers: List of strings that will be used to
+            add labels to the metrics. Defaults to `[]`.
 
     Returns:
         Function that takes a single parameter `Info`.
@@ -514,7 +516,7 @@ def combined_size(
                     getattr(info, attribute_name)
                     for attribute_name in info_attribute_names
                 ]
-                if should_include_headers and included_headers is not None:
+                if should_include_headers:
                     for header in included_headers:
                         label_values.append(info.request.headers.get(header, ""))
 
@@ -540,7 +542,7 @@ def requests(
     should_include_status: bool = True,
     registry: CollectorRegistry = REGISTRY,
     should_include_headers: bool = False,
-    included_headers: List[str] = None,
+    included_headers: List[str] = [],
 ) -> Optional[Callable[[Info], None]]:
     """Record the number of requests.
 
@@ -565,12 +567,12 @@ def requests(
 
         should_include_status (bool, optional): Should the `status` label be
             part of the metric? Defaults to `True`.
-            
+
         should_include_headers: Should the `headers` labels be part of the
             metric? Defaults to `False`.
 
-        included_headers: List of headers to include in the metric. Defaults to
-            None.
+        included_headers: List of strings that will be used to
+            add labels to the metrics. Defaults to `[]`.
 
     Returns:
         Function that takes a single parameter `Info`.
@@ -613,7 +615,7 @@ def requests(
                     getattr(info, attribute_name)
                     for attribute_name in info_attribute_names
                 ]
-                if should_include_headers and included_headers is not None:
+                if should_include_headers:
                     for header in included_headers:
                         label_values.append(info.request.headers.get(header, ""))
 
@@ -659,7 +661,7 @@ def default(
     latency_lowr_buckets: Sequence[Union[float, str]] = (0.1, 0.5, 1),
     registry: CollectorRegistry = REGISTRY,
     should_include_headers: bool = False,
-    included_headers: List[str] = None,
+    included_headers: List[str] = [],
 ) -> Optional[Callable[[Info], None]]:
     """Contains multiple metrics to cover multiple things.
 
@@ -703,8 +705,8 @@ def default(
         should_include_headers: Should the `headers` labels be part of the
             metric? Defaults to `False`.
 
-        included_headers: List of headers to include in the metric. Defaults to
-            None.
+        included_headers: List of strings that will be used to
+            add labels to the metrics. Defaults to `[]`.
 
     Returns:
         Function that takes a single parameter `Info`.
@@ -724,7 +726,7 @@ def default(
     # handle it seems to be with this try block.
     try:
         header_label_names = ()
-        if should_include_headers and included_headers is not None:
+        if should_include_headers:
             for header in included_headers:
                 header_label_names = (*header_label_names, header)
 
@@ -799,7 +801,7 @@ def default(
 
         def instrumentation(info: Info) -> None:
             header_values = ()
-            if should_include_headers and included_headers is not None:
+            if should_include_headers:
                 for hdr in included_headers:
                     if info.request and hasattr(info.request, "headers"):
                         header_values = (*header_values, info.request.headers.get(hdr, ""),)
@@ -813,7 +815,7 @@ def default(
             )
 
             if info.response and hasattr(info.response, "headers"):
-                OUT_SIZE.labels(info.modified_handler,*header_values).observe(
+                OUT_SIZE.labels(info.modified_handler, *header_values).observe(
                     int(info.response.headers.get("Content-Length", 0))
                 )
             else:
@@ -824,8 +826,8 @@ def default(
             ):
                 LATENCY_HIGHR.observe(info.modified_duration)
 
-            LATENCY_LOWR.labels(info.method,info.modified_handler, *header_values
-            ).observe(info.modified_duration)
+            LATENCY_LOWR.labels(info.method, info.modified_handler, *header_values
+                                ).observe(info.modified_duration)
 
         return instrumentation
 

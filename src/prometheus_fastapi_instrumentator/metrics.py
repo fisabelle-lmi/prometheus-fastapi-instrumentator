@@ -56,6 +56,8 @@ def _build_label_attribute_names(
     should_include_handler: bool,
     should_include_method: bool,
     should_include_status: bool,
+    should_include_headers: bool = False,
+    included_headers: List[str] = [],
 ) -> Tuple[List[str], List[str]]:
     """Builds up tuple with to be used label and attribute names.
 
@@ -63,6 +65,8 @@ def _build_label_attribute_names(
         should_include_handler (bool): Should the `handler` label be part of the metric?
         should_include_method (bool): Should the `method` label be part of the metric?
         should_include_status (bool): Should the `status` label be part of the metric?
+        should_include_headers (bool): Should the specified `included_headers` labels be part of the metric?
+        included_headers (List[str]): List of strings that will be used to add labels to the metrics.
 
     Returns:
         Tuple with two list elements.
@@ -86,6 +90,10 @@ def _build_label_attribute_names(
     if should_include_status:
         label_names.append("status")
         info_attribute_names.append("modified_status")
+
+    if should_include_headers:
+        for header in included_headers:
+            label_names.append(header)
 
     return label_names, info_attribute_names
 
@@ -116,6 +124,8 @@ def latency(
     should_include_status: bool = True,
     buckets: Sequence[Union[float, str]] = Histogram.DEFAULT_BUCKETS,
     registry: CollectorRegistry = REGISTRY,
+    should_include_headers: bool = False,
+    included_headers: List[str] = [],
 ) -> Optional[Callable[[Info], None]]:
     """Default metric for the Prometheus FastAPI Instrumentator.
 
@@ -144,6 +154,12 @@ def latency(
         buckets: Buckets for the histogram. Defaults to Prometheus default.
             Defaults to default buckets from Prometheus client library.
 
+        should_include_headers: Should the `headers` labels be part of the
+            metric? Defaults to `False`.
+
+        included_headers (List[str]): List of strings that will be used to
+            add labels to the metrics. Defaults to `[]`.
+
     Returns:
         Function that takes a single parameter `Info`.
     """
@@ -152,7 +168,8 @@ def latency(
         buckets = [*buckets, float("inf")]
 
     label_names, info_attribute_names = _build_label_attribute_names(
-        should_include_handler, should_include_method, should_include_status
+        should_include_handler, should_include_method, should_include_status,
+        should_include_headers, included_headers
     )
 
     # Starlette will call app.build_middleware_stack() with every new middleware
@@ -189,6 +206,9 @@ def latency(
                     getattr(info, attribute_name)
                     for attribute_name in info_attribute_names
                 ]
+                if should_include_headers:
+                    for header in included_headers:
+                        label_values.append(info.request.headers.get(header, ""))
 
                 METRIC.labels(*label_values).observe(info.modified_duration)
             else:
@@ -211,6 +231,8 @@ def request_size(
     should_include_method: bool = True,
     should_include_status: bool = True,
     registry: CollectorRegistry = REGISTRY,
+    should_include_headers: bool = False,
+    included_headers: List[str] = [],
 ) -> Optional[Callable[[Info], None]]:
     """Record the content length of incoming requests.
 
@@ -231,13 +253,17 @@ def request_size(
             metric? Defaults to `True`.
         should_include_status: Should the `status` label be part of the metric?
             Defaults to `True`.
-
+        should_include_headers: Should the `headers` labels be part of the
+            metric? Defaults to `False`.
+        included_headers: List of strings that will be used to
+            add labels to the metrics. Defaults to `[]`.
     Returns:
         Function that takes a single parameter `Info`.
     """
 
     label_names, info_attribute_names = _build_label_attribute_names(
-        should_include_handler, should_include_method, should_include_status
+        should_include_handler, should_include_method, should_include_status,
+        should_include_headers, included_headers
     )
 
     # Starlette will call app.build_middleware_stack() with every new middleware
@@ -273,6 +299,9 @@ def request_size(
                     getattr(info, attribute_name)
                     for attribute_name in info_attribute_names
                 ]
+                if should_include_headers:
+                    for header in included_headers:
+                        label_values.append(info.request.headers.get(header, ""))
 
                 METRIC.labels(*label_values).observe(int(content_length))
             else:
@@ -295,6 +324,8 @@ def response_size(
     should_include_method: bool = True,
     should_include_status: bool = True,
     registry: CollectorRegistry = REGISTRY,
+    should_include_headers: bool = False,
+    included_headers: List[str] = [],
 ) -> Optional[Callable[[Info], None]]:
     """Record the content length of outgoing responses.
 
@@ -322,12 +353,19 @@ def response_size(
         should_include_status: Should the `status` label be part of the metric?
             Defaults to `True`.
 
+       should_include_headers: Should the `headers` labels be part of the
+            metric? Defaults to `False`.
+
+        included_headers: List of strings that will be used to
+            add labels to the metrics. Defaults to `[]`.
+
     Returns:
         Function that takes a single parameter `Info`.
     """
 
     label_names, info_attribute_names = _build_label_attribute_names(
-        should_include_handler, should_include_method, should_include_status
+        should_include_handler, should_include_method, should_include_status,
+        should_include_headers, included_headers
     )
 
     # Starlette will call app.build_middleware_stack() with every new middleware
@@ -367,6 +405,9 @@ def response_size(
                     getattr(info, attribute_name)
                     for attribute_name in info_attribute_names
                 ]
+                if should_include_headers:
+                    for header in included_headers:
+                        label_values.append(info.request.headers.get(header, ""))
 
                 METRIC.labels(*label_values).observe(int(content_length))
             else:
@@ -389,6 +430,9 @@ def combined_size(
     should_include_method: bool = True,
     should_include_status: bool = True,
     registry: CollectorRegistry = REGISTRY,
+    should_include_headers: bool = False,
+    included_headers: List[str] = [],
+
 ) -> Optional[Callable[[Info], None]]:
     """Record the combined content length of requests and responses.
 
@@ -416,12 +460,19 @@ def combined_size(
         should_include_status: Should the `status` label be part of the metric?
             Defaults to `True`.
 
+        should_include_headers: Should the `headers` labels be part of the
+            metric? Defaults to `False`.
+
+        included_headers: List of strings that will be used to
+            add labels to the metrics. Defaults to `[]`.
+
     Returns:
         Function that takes a single parameter `Info`.
     """
 
     label_names, info_attribute_names = _build_label_attribute_names(
-        should_include_handler, should_include_method, should_include_status
+        should_include_handler, should_include_method, should_include_status,
+        should_include_headers, included_headers
     )
 
     # Starlette will call app.build_middleware_stack() with every new middleware
@@ -465,6 +516,9 @@ def combined_size(
                     getattr(info, attribute_name)
                     for attribute_name in info_attribute_names
                 ]
+                if should_include_headers:
+                    for header in included_headers:
+                        label_values.append(info.request.headers.get(header, ""))
 
                 METRIC.labels(*label_values).observe(int(content_length))
             else:
@@ -487,6 +541,8 @@ def requests(
     should_include_method: bool = True,
     should_include_status: bool = True,
     registry: CollectorRegistry = REGISTRY,
+    should_include_headers: bool = False,
+    included_headers: List[str] = [],
 ) -> Optional[Callable[[Info], None]]:
     """Record the number of requests.
 
@@ -512,12 +568,19 @@ def requests(
         should_include_status (bool, optional): Should the `status` label be
             part of the metric? Defaults to `True`.
 
+        should_include_headers: Should the `headers` labels be part of the
+            metric? Defaults to `False`.
+
+        included_headers: List of strings that will be used to
+            add labels to the metrics. Defaults to `[]`.
+
     Returns:
         Function that takes a single parameter `Info`.
     """
 
     label_names, info_attribute_names = _build_label_attribute_names(
-        should_include_handler, should_include_method, should_include_status
+        should_include_handler, should_include_method, should_include_status,
+        should_include_headers, included_headers
     )
 
     # Starlette will call app.build_middleware_stack() with every new middleware
@@ -552,6 +615,9 @@ def requests(
                     getattr(info, attribute_name)
                     for attribute_name in info_attribute_names
                 ]
+                if should_include_headers:
+                    for header in included_headers:
+                        label_values.append(info.request.headers.get(header, ""))
 
                 METRIC.labels(*label_values).inc()
             else:
@@ -594,6 +660,8 @@ def default(
     ),
     latency_lowr_buckets: Sequence[Union[float, str]] = (0.1, 0.5, 1),
     registry: CollectorRegistry = REGISTRY,
+    should_include_headers: bool = False,
+    included_headers: List[str] = [],
 ) -> Optional[Callable[[Info], None]]:
     """Contains multiple metrics to cover multiple things.
 
@@ -634,6 +702,12 @@ def default(
             res histogram. Should be very small as all possible labels are
             included. Defaults to `(0.1, 0.5, 1)`.
 
+        should_include_headers: Should the `headers` labels be part of the
+            metric? Defaults to `False`.
+
+        included_headers: List of strings that will be used to
+            add labels to the metrics. Defaults to `[]`.
+
     Returns:
         Function that takes a single parameter `Info`.
     """
@@ -651,6 +725,11 @@ def default(
     # verify if adding a metric will cause errors or not, so the only way to
     # handle it seems to be with this try block.
     try:
+        header_label_names = ()
+        if should_include_headers:
+            for header in included_headers:
+                header_label_names = (*header_label_names, header)
+
         TOTAL = Counter(
             name="http_requests_total",
             documentation="Total number of requests by method, status and handler.",
@@ -658,6 +737,7 @@ def default(
                 "method",
                 "status",
                 "handler",
+                *header_label_names
             ),
             namespace=metric_namespace,
             subsystem=metric_subsystem,
@@ -671,7 +751,7 @@ def default(
                 "Only value of header is respected. Otherwise ignored. "
                 "No percentile calculated. "
             ),
-            labelnames=("handler",),
+            labelnames=("handler", *header_label_names),
             namespace=metric_namespace,
             subsystem=metric_subsystem,
             registry=registry,
@@ -684,7 +764,7 @@ def default(
                 "Only value of header is respected. Otherwise ignored. "
                 "No percentile calculated. "
             ),
-            labelnames=("handler",),
+            labelnames=("handler", *header_label_names),
             namespace=metric_namespace,
             subsystem=metric_subsystem,
             registry=registry,
@@ -712,6 +792,7 @@ def default(
             labelnames=(
                 "method",
                 "handler",
+                *header_label_names
             ),
             namespace=metric_namespace,
             subsystem=metric_subsystem,
@@ -719,27 +800,34 @@ def default(
         )
 
         def instrumentation(info: Info) -> None:
-            TOTAL.labels(info.method, info.modified_status, info.modified_handler).inc()
+            header_values = ()
+            if should_include_headers:
+                for hdr in included_headers:
+                    if info.request and hasattr(info.request, "headers"):
+                        header_values = (*header_values, info.request.headers.get(hdr, ""),)
+                    elif info.response and hasattr(info.response, "headers"):
+                        header_values = (*header_values, info.response.headers.get(hdr, ""),)
 
-            IN_SIZE.labels(info.modified_handler).observe(
+            TOTAL.labels(info.method, info.modified_status, info.modified_handler, *header_values).inc()
+
+            IN_SIZE.labels(info.modified_handler, *header_values).observe(
                 int(info.request.headers.get("Content-Length", 0))
             )
 
             if info.response and hasattr(info.response, "headers"):
-                OUT_SIZE.labels(info.modified_handler).observe(
+                OUT_SIZE.labels(info.modified_handler, *header_values).observe(
                     int(info.response.headers.get("Content-Length", 0))
                 )
             else:
-                OUT_SIZE.labels(info.modified_handler).observe(0)
+                OUT_SIZE.labels(info.modified_handler, *header_values).observe(0)
 
             if not should_only_respect_2xx_for_highr or info.modified_status.startswith(
                 "2"
             ):
                 LATENCY_HIGHR.observe(info.modified_duration)
 
-            LATENCY_LOWR.labels(
-                handler=info.modified_handler, method=info.method
-            ).observe(info.modified_duration)
+            LATENCY_LOWR.labels(info.method, info.modified_handler, *header_values
+                                ).observe(info.modified_duration)
 
         return instrumentation
 
